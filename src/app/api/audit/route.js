@@ -1,51 +1,66 @@
 import { NextResponse } from 'next/server';
-import axios from 'axios';
-import * as cheerio from 'cheerio';
 
-export async function POST(request) {
+export async function POST(req) {
   try {
-    const body = await request.json();
-    const { url, html } = body;
+    const { url, html } = await req.json();
 
-    let htmlContent = html;
-    if (url) {
-      const response = await axios.get(url);
-      htmlContent = response.data;
+    if (!url && !html) {
+      return NextResponse.json({ error: 'Please provide a URL or HTML snippet' }, { status: 400 });
     }
 
-    const $ = cheerio.load(htmlContent);
+    let pageContent = html;
+
+    if (url) {
+      const response = await fetch(url);
+      if (!response.ok) {
+        return NextResponse.json({ error: 'Failed to fetch the provided URL' }, { status: 500 });
+      }
+      pageContent = await response.text();
+    }
+
     const suggestions = [];
 
-    const ctas = $('a, button').filter((i, el) =>
-      $(el).text().toLowerCase().match(/(buy|subscribe|start|try|learn|get|contact)/)
-    );
-    if (ctas.length === 0) {
-      suggestions.push('No clear CTA found. Add a visible “Start Free Trial” or “Contact Us” button.');
+    // --- CTA Clarity
+    if (!pageContent.toLowerCase().includes('call to action') ||
+        (!pageContent.toLowerCase().includes('get started') ||
+        !pageContent.toLowerCase().includes('sign up') ||
+        !pageContent.toLowerCase().includes('try now'))) {
+      suggestions.push('Your primary call-to-action (CTA) could be clearer or more visible. Consider using strong verbs like “Get Started” or “Try Now”.');
     }
 
-    if ($('h1').length === 0) {
-      suggestions.push('Missing <h1> tag. Add a clear, bold headline to grab attention.');
+    // --- Visual Hierarchy
+    if ((pageContent.match(/<h1>/g) || []).length === 0) {
+      suggestions.push('You are missing a clear main headline (<h1>). Add a strong, visual opening statement.');
     }
 
-    if ($('h2').length < 2) {
-      suggestions.push('Use more subheadings (<h2>) to improve content structure.');
+    // --- Copy Effectiveness
+    if (!pageContent.toLowerCase().includes('we help') ||
+        !pageContent.toLowerCase().includes('our product') ||
+        !pageContent.toLowerCase().includes('solution')) {
+      suggestions.push('Clarify your value proposition—what problem are you solving and for whom?');
     }
 
-    const heroText = $('h1, h2, p').text().toLowerCase();
-    if (!heroText.includes('value') && !heroText.includes('benefit')) {
-      suggestions.push('Clarify your value proposition—what problem are you solving?');
+    // --- Trust Signals
+    if (!pageContent.toLowerCase().includes('testimonial') ||
+        !pageContent.toLowerCase().includes('client') ||
+        !pageContent.toLowerCase().includes('trusted by')) {
+      suggestions.push('Consider adding trust signals like testimonials, client logos, or case studies.');
     }
 
-    if ($('img[alt*="trust"], .testimonial, .logo, .review, .badge').length === 0) {
-      suggestions.push('Consider adding trust signals such as testimonials or client logos.');
+    // --- Bonus: Contact or Social
+    if ((!pageContent.toLowerCase().includes('contact') &&
+        !pageContent.toLowerCase().includes('email')) ||
+        !pageContent.toLowerCase().includes('linkedin')) {
+      suggestions.push('Include ways for users to contact you or follow up—such as an email or social links.');
     }
 
     if (suggestions.length === 0) {
-      suggestions.push('Great job! Your landing page has a clear structure and compelling CTA.');
+      suggestions.push('Your page looks solid! Consider A/B testing to optimize further.');
     }
 
     return NextResponse.json({ suggestions });
   } catch (err) {
-    return NextResponse.json({ error: 'Audit failed.', details: err.message }, { status: 500 });
+    console.error('Audit API error:', err.message);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
