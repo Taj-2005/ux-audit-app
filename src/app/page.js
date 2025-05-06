@@ -1,17 +1,19 @@
 'use client';
 import { useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, CheckCircle, AlertTriangle, Star } from 'lucide-react';
 
 export default function Home() {
   const [url, setUrl] = useState('');
   const [html, setHtml] = useState('');
   const [suggestions, setSuggestions] = useState([]);
+  const [score, setScore] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleAudit = async () => {
     setLoading(true);
     setSuggestions([]);
+    setScore(null);
     setError('');
 
     try {
@@ -26,9 +28,8 @@ export default function Home() {
 
       if (!res.ok) throw new Error(data?.error || 'Unexpected error occurred');
 
-      if (data?.suggestions) {
-        setSuggestions(data.suggestions);
-      }
+      if (data?.suggestions) setSuggestions(data.suggestions);
+      if (data?.score) setScore(data.score);
     } catch (err) {
       console.error('Audit error:', err.message);
       setError(err.message);
@@ -38,9 +39,9 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-6 bg-white text-gray-900 font-sans dark:bg-gray-950 dark:text-white">
-      <div className="w-full max-w-2xl rounded-2xl p-8 space-y-6 border shadow-sm border-gray-200 bg-white dark:bg-gray-900 dark:border-gray-800 dark:shadow-xl transition">
-        <h1 className="text-3xl font-bold text-center">Landing Page UX Audit Tool</h1>
+    <main className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-white to-gray-100 text-gray-900 dark:from-gray-950 dark:to-gray-900 dark:text-white">
+      <div className="w-full max-w-3xl rounded-3xl p-8 space-y-6 border shadow-xl border-gray-200 bg-white dark:bg-gray-900 dark:border-gray-800 transition">
+        <h1 className="text-4xl font-bold text-center">Landing Page UX Audit Tool</h1>
 
         <div className="grid gap-4">
           <div>
@@ -69,17 +70,17 @@ export default function Home() {
             disabled={loading || (!url && !html)}
             className="w-full flex justify-center items-center gap-2 bg-black text-white py-2 rounded-lg transition hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-blue-600 dark:hover:bg-blue-700"
           >
-            {loading ? (
-              <>
-                <Loader2 className="animate-spin h-5 w-5" />
-                Auditing...
-              </>
-            ) : (
-              'Run Audit'
-            )}
+            {loading ? <><Loader2 className="animate-spin h-5 w-5" /> Auditing...</> : 'Run Audit'}
           </button>
 
           {error && <p className="text-red-500 text-center">{error}</p>}
+
+          {score !== null && (
+            <div className="text-center">
+              <p className="text-sm font-medium">UX Score</p>
+              <div className="text-4xl font-bold text-blue-600 dark:text-blue-400">{score}/100</div>
+            </div>
+          )}
 
           {!loading && suggestions.length > 0 && (
             <div className="mt-4 space-y-4">
@@ -88,9 +89,10 @@ export default function Home() {
                 {suggestions.filter(Boolean).map((s, i) => (
                   <li
                     key={i}
-                    className="bg-gray-50 border border-gray-200 rounded-xl p-4 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-blue-800 transition"
+                    className="flex gap-3 items-start bg-gray-50 border border-gray-200 rounded-xl p-4 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-blue-800 transition"
                   >
-                    {s}
+                    <Star className="text-yellow-400 mt-1" />
+                    <span>{s}</span>
                   </li>
                 ))}
               </ul>

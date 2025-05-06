@@ -1,3 +1,4 @@
+// --- pages/api/audit.js ---
 import { NextResponse } from 'next/server';
 
 export async function POST(req) {
@@ -9,7 +10,6 @@ export async function POST(req) {
     }
 
     let pageContent = html;
-
     if (url) {
       const response = await fetch(url);
       if (!response.ok) {
@@ -19,46 +19,55 @@ export async function POST(req) {
     }
 
     const suggestions = [];
+    let score = 100;
 
-    // --- CTA Clarity
-    if (!pageContent.toLowerCase().includes('call to action') ||
-        (!pageContent.toLowerCase().includes('get started') ||
-        !pageContent.toLowerCase().includes('sign up') ||
-        !pageContent.toLowerCase().includes('try now'))) {
-      suggestions.push('Your primary call-to-action (CTA) could be clearer or more visible. Consider using strong verbs like “Get Started” or “Try Now”.');
+    // CTA Clarity
+    if (!pageContent.match(/call to action|get started|sign up|try now/i)) {
+      suggestions.push('Primary call-to-action (CTA) could be clearer. Use phrases like “Get Started” or “Try Now”.');
+      score -= 20;
     }
 
-    // --- Visual Hierarchy
-    if ((pageContent.match(/<h1>/g) || []).length === 0) {
-      suggestions.push('You are missing a clear main headline (<h1>). Add a strong, visual opening statement.');
+    // Visual Hierarchy
+    if ((pageContent.match(/<h1>/gi) || []).length === 0) {
+      suggestions.push('Missing a clear main headline (<h1>). Add a strong opening statement.');
+      score -= 15;
     }
 
-    // --- Copy Effectiveness
-    if (!pageContent.toLowerCase().includes('we help') ||
-        !pageContent.toLowerCase().includes('our product') ||
-        !pageContent.toLowerCase().includes('solution')) {
+    // Copy Effectiveness
+    if (!pageContent.match(/we help|our product|solution/i)) {
       suggestions.push('Clarify your value proposition—what problem are you solving and for whom?');
+      score -= 15;
     }
 
-    // --- Trust Signals
-    if (!pageContent.toLowerCase().includes('testimonial') ||
-        !pageContent.toLowerCase().includes('client') ||
-        !pageContent.toLowerCase().includes('trusted by')) {
-      suggestions.push('Consider adding trust signals like testimonials, client logos, or case studies.');
+    // Trust Signals
+    if (!pageContent.match(/testimonial|client|trusted by/i)) {
+      suggestions.push('Add trust signals like testimonials or client logos.');
+      score -= 15;
     }
 
-    // --- Bonus: Contact or Social
-    if ((!pageContent.toLowerCase().includes('contact') &&
-        !pageContent.toLowerCase().includes('email')) ||
-        !pageContent.toLowerCase().includes('linkedin')) {
-      suggestions.push('Include ways for users to contact you or follow up—such as an email or social links.');
+    // Contact Options
+    if (!pageContent.match(/contact|email|linkedin/i)) {
+      suggestions.push('Include contact methods such as email or LinkedIn.');
+      score -= 10;
+    }
+
+    // Accessibility
+    if (!pageContent.match(/alt="[^"]*"/i)) {
+      suggestions.push('Include descriptive alt attributes for images to improve accessibility.');
+      score -= 10;
+    }
+
+    // Mobile Responsiveness
+    if (!pageContent.match(/viewport/i)) {
+      suggestions.push('Consider adding a meta viewport tag for mobile responsiveness.');
+      score -= 5;
     }
 
     if (suggestions.length === 0) {
-      suggestions.push('Your page looks solid! Consider A/B testing to optimize further.');
+      suggestions.push('Your page looks great! You might consider A/B testing to further optimize.');
     }
 
-    return NextResponse.json({ suggestions });
+    return NextResponse.json({ suggestions, score });
   } catch (err) {
     console.error('Audit API error:', err.message);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
