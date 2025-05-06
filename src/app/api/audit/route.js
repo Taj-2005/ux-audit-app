@@ -28,7 +28,7 @@ export async function POST(req) {
     }
 
     // Visual Hierarchy
-    if ((pageContent.match(/<h1>/gi) || []).length === 0) {
+    if ((!pageContent.match(/<h1>/gi) || []).length === 0) {
       suggestions.push('Missing a clear main headline (<h1>). Add a strong opening statement.');
       score -= 15;
     }
