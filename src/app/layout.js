@@ -18,7 +18,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className="bg-gradient-to-br min-h-screen dark:from-gray-950 dark:to-gray-900 dark:text-white">
       <body
         className={`${geistSans.variable} ${geistMono.variable}`}
       >
